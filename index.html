@@ -4,19 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>詩野仙蹤 - 新詩冒險遊戲</title>
-    
-    <!-- 引入 Google Fonts (手寫字體) -->
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 
+    <script>
+        window.__poetrySavedLoadGlobals = {
+            define: window.define,
+            module: window.module,
+            exports: window.exports
+        };
+        window.define = undefined;
+        window.module = undefined;
+        window.exports = undefined;
+    </script>
+    
     <!-- 引入 Tailwind CSS (用於樣式) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./vendor/tailwindcss.js"></script>
     
     <!-- 引入 React 和 ReactDOM (用於核心邏輯) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="./vendor/react.development.js"></script>
+    <script src="./vendor/react-dom.development.js"></script>
     
     <!-- 引入 Babel (用於解析 JSX) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./vendor/babel.min.js"></script>
+    <script>
+        Babel.registerPreset('react-classic', {
+            presets: [[Babel.availablePresets['react'], { runtime: 'classic' }]]
+        });
+        window.__poetryVendorStatus = {
+            react: !!window.React,
+            reactDOM: !!window.ReactDOM,
+            babel: !!window.Babel
+        };
+        if (window.__poetrySavedLoadGlobals) {
+            window.define = window.__poetrySavedLoadGlobals.define;
+            window.module = window.__poetrySavedLoadGlobals.module;
+            window.exports = window.__poetrySavedLoadGlobals.exports;
+        }
+    </script>
+    <script>
+        window.__poetryCanStart = !!(window.React && window.ReactDOM && window.Babel);
+        if (!window.__poetryCanStart) {
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.showGameLoadError) {
+                    window.showGameLoadError('React 檔案未成功載入。React: ' + !!window.React + '，ReactDOM: ' + !!window.ReactDOM + '，Babel: ' + !!window.Babel + '。');
+                }
+            });
+        }
+    </script>
 
     <style>
         /* 自定義動畫樣式 */
@@ -75,13 +108,43 @@
 </head>
 <body class="bg-green-900 touch-none">
     <div id="root"></div>
+    <script>
+        window.__poetryGameStarted = false;
+        window.showGameLoadError = function (message) {
+            var root = document.getElementById('root');
+            if (!root || root.children.length > 0) return;
+            root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#14532d;color:white;font-family:Arial,sans-serif;padding:24px;text-align:center;"><div style="max-width:720px;background:rgba(0,0,0,.45);padding:24px;border-radius:16px;"><h1 style="font-size:28px;margin:0 0 12px;">遊戲載入失敗</h1><p style="font-size:18px;line-height:1.6;margin:0;">請確認 index.html、vendor 資料夾、圖片與音樂檔都放在同一個資料夾內。<br>錯誤：' + String(message || '未知錯誤').replace(/[<>&]/g, '') + '</p></div></div>';
+        };
+        window.addEventListener('error', function (event) {
+            window.showGameLoadError(event.message);
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            var reason = event.reason && (event.reason.message || event.reason);
+            window.showGameLoadError(reason);
+        });
+        setTimeout(function () {
+            if (!window.__poetryGameStarted) {
+                var status = window.__poetryVendorStatus || {};
+                window.showGameLoadError('Babel 或 React 尚未成功啟動。React: ' + !!status.react + '，ReactDOM: ' + !!status.reactDOM + '，Babel: ' + !!status.babel + '。請重新整理一次，或確認 vendor 資料夾沒有被移動。');
+            }
+        }, 3000);
+    </script>
 
-    <script type="text/babel">
+    <script type="text/babel" data-presets="react-classic">
+        if (!window.__poetryCanStart) {
+          throw new Error('React 檔案未成功載入，停止啟動遊戲。');
+        }
+
         const { useState, useEffect, useRef, useMemo } = React;
 
         // --- 數字轉中文對照表 ---
         const numToChinese = {
             1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '七'
+        };
+
+        const getLevelBackgroundImage = (levelId) => {
+            const levelName = numToChinese[levelId];
+            return levelId === 3 ? `./第${levelName}關背景.png` : `./第${levelName}關.png`;
         };
 
         // --- 隨機洗牌函數 ---
@@ -325,6 +388,35 @@
         const LUCKY_CHEST_POS = { x: 71.5, y: 48.5 };
         // 寶箱2 (射氣球): 在第5關與第6關之間
         const BALLOON_CHEST_POS = { x: 10, y: 16.5 };
+
+        class ErrorBoundary extends React.Component {
+          constructor(props) {
+            super(props);
+            this.state = { error: null };
+          }
+
+          static getDerivedStateFromError(error) {
+            return { error };
+          }
+
+          render() {
+            if (this.state.error) {
+              return (
+                <div className="min-h-screen flex items-center justify-center bg-green-900 text-white p-6 text-center font-sans">
+                  <div className="max-w-2xl rounded-2xl bg-black/50 p-8">
+                    <h1 className="text-3xl font-bold mb-4">遊戲載入失敗</h1>
+                    <p className="text-lg leading-relaxed">
+                      請確認 index.html、vendor 資料夾、圖片與音樂檔都放在同一個資料夾內。
+                      <br />
+                      錯誤：{this.state.error.message}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+            return this.props.children;
+          }
+        }
 
         function PoetryGame() {
           const [gameState, setGameState] = useState('start'); // start, map, quiz, win, fail, balloonGame
@@ -869,7 +961,7 @@
               >
                 <div className="absolute inset-0 bg-black/60 pointer-events-none z-10"></div>
                 <div className="bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/20 text-center max-w-lg w-full z-20">
-                  <h1 className="text-7xl text-yellow-300 mb-4" style={{ fontFamily: "'Dancing Script', cursive" }}>Poems</h1>
+                  <h1 className="text-7xl text-yellow-300 mb-4" style={{ fontFamily: "Georgia, 'Times New Roman', cursive" }}>Poems</h1>
                   <h2 className="text-5xl font-bold mb-2 tracking-wider text-yellow-300 drop-shadow-lg">詩野仙蹤</h2>
                   <p className="text-xl text-gray-200 mb-8 font-light">一場結合新詩與冒險的奇幻旅程</p>
                   <div className="space-y-4 text-left bg-black/40 p-6 rounded-xl mb-8 border border-white/10">
@@ -983,7 +1075,7 @@
               <div 
                 className="min-h-screen flex items-center justify-center p-4 relative bg-cover bg-center"
                 style={{
-                    backgroundImage: `url("./第${numToChinese[currentLevelId]}關.png")`,
+                    backgroundImage: `url("${getLevelBackgroundImage(currentLevelId)}")`,
                     backgroundColor: '#1e293b'
                 }}
               >
@@ -1191,8 +1283,14 @@
           );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<PoetryGame />);
+        window.__poetryGameStarted = true;
+        const rootElement = document.getElementById('root');
+        if (ReactDOM.createRoot) {
+          const root = ReactDOM.createRoot(rootElement);
+          root.render(<ErrorBoundary><PoetryGame /></ErrorBoundary>);
+        } else {
+          ReactDOM.render(<ErrorBoundary><PoetryGame /></ErrorBoundary>, rootElement);
+        }
     </script>
 </body>
 </html>
