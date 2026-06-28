@@ -59,6 +59,7 @@
         }
         .pulse-ring {
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            will-change: transform, opacity;
         }
         @keyframes score-pop {
             0% { transform: scale(1); }
@@ -67,6 +68,7 @@
         }
         .score-change {
             animation: score-pop 0.5s ease-out;
+            will-change: transform;
         }
         @keyframes heart-beat {
             0% { transform: scale(1); }
@@ -87,6 +89,7 @@
         }
         .piece-idle {
             animation: bounce-gentle 2s infinite ease-in-out;
+            will-change: transform;
         }
         /* 氣球飄動 */
         @keyframes float {
@@ -95,6 +98,7 @@
         }
         .balloon-float {
             animation: float 3s ease-in-out infinite;
+            will-change: transform;
         }
         /* 雲朵飄動 */
         @keyframes cloud-move {
@@ -103,10 +107,38 @@
         }
         .cloud-anim {
             animation: cloud-move 20s linear infinite;
+            will-change: transform;
+        }
+        @keyframes modal-in {
+            0% { transform: scale(0.94) translateY(10px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.35; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.12); }
+        }
+        .animate-bounce-in {
+            animation: modal-in 0.24s ease-out both;
+            will-change: transform, opacity;
+        }
+        .sparkle {
+            animation: sparkle 1.8s ease-in-out infinite;
+            transform-origin: center;
+        }
+        .gpu-layer {
+            backface-visibility: hidden;
+            will-change: transform;
+        }
+        .map-route {
+            vector-effect: non-scaling-stroke;
+            shape-rendering: geometricPrecision;
+        }
+        .map-route-glow {
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 12px rgba(125, 211, 252, 0.75));
         }
     </style>
 </head>
-<body class="bg-green-900 touch-none">
+<body class="bg-green-900">
     <div id="root"></div>
     <script>
         window.__poetryGameStarted = false;
@@ -173,29 +205,49 @@
         const ArrowRight = ({ className }) => <IconBase className={className}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></IconBase>;
         const RefreshCw = ({ className }) => <IconBase className={className}><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></IconBase>;
         const Heart = ({ className, fill }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={fill || "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
-        const ChessPiece = ({ className, size }) => <svg xmlns="http://www.w3.org/2000/svg" width={size||24} height={size||24} viewBox="0 0 384 512" fill="currentColor" className={className}><path d="M192 0c53 0 96 43 96 96s-43 96-96 96-96-43-96-96S139 0 192 0zM64 224h256c35.3 0 64 28.7 64 64v32c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32v-32c0-35.3 28.7-64 64-64zM0 480c0-17.7 14.3-32 32-32h320c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32z"/></svg>;
+        const BoyAvatar = ({ className }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 92" className={className}>
+            <ellipse cx="36" cy="87" rx="18" ry="4" fill="rgba(0,0,0,0.28)" />
+            <path d="M24 44h24l5 23H19l5-23z" fill="#22c55e" stroke="#14532d" strokeWidth="2" strokeLinejoin="round" />
+            <path d="M24 46l-10 12M48 46l10 12" stroke="#f5c28b" strokeWidth="6" strokeLinecap="round" />
+            <path d="M26 67v14M46 67v14" stroke="#1d4ed8" strokeWidth="8" strokeLinecap="round" />
+            <path d="M22 81h11M39 81h11" stroke="#f8fafc" strokeWidth="6" strokeLinecap="round" />
+            <circle cx="36" cy="27" r="17" fill="#f5c28b" stroke="#7c2d12" strokeWidth="2" />
+            <path d="M20 25c2-13 12-20 25-15 6 2 9 7 8 15-7-6-19-7-33 0z" fill="#3f1f12" />
+            <circle cx="30" cy="29" r="2" fill="#1f2937" />
+            <circle cx="42" cy="29" r="2" fill="#1f2937" />
+            <path d="M31 37c3 3 7 3 10 0" fill="none" stroke="#7c2d12" strokeWidth="2" strokeLinecap="round" />
+            <path d="M28 49h16" stroke="#bbf7d0" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        );
         
         // --- 精緻寶箱圖示 ---
         const TreasureChest = ({ className, size }) => (
-          <svg xmlns="http://www.w3.org/2000/svg" width={size||32} height={size||32} viewBox="0 0 64 64" className={className}>
-            <path d="M8 28v24a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V28H8z" fill="#B45309" stroke="#78350F" strokeWidth="2" strokeLinejoin="round"/>
-            <path d="M18 28v24M46 28v24" stroke="#FBBF24" strokeWidth="4"/>
-            <path d="M8 28C8 16.954 18.745 8 32 8s24 8.954 24 20H8z" fill="#D97706" stroke="#78350F" strokeWidth="2" strokeLinejoin="round"/>
-            <path d="M18 28c0-8 6-16 14-16s14 8 14 16" fill="none" stroke="#FBBF24" strokeWidth="4"/>
-            <rect x="28" y="24" width="8" height="10" rx="2" fill="#FBBF24" stroke="#78350F" strokeWidth="2"/>
-            <circle cx="32" cy="29" r="1.5" fill="#78350F"/>
-            <path d="M31 30.5h2v2h-2z" fill="#78350F"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width={size||40} height={size||40} viewBox="0 0 72 72" className={className}>
+            <ellipse cx="36" cy="61" rx="25" ry="5" fill="rgba(0,0,0,0.22)"/>
+            <path d="M9 29h54v25a6 6 0 0 1-6 6H15a6 6 0 0 1-6-6V29z" fill="#a55314" stroke="#5f2e10" strokeWidth="2.5" strokeLinejoin="round"/>
+            <path d="M12 34h48v9H12z" fill="#c86d1d" opacity="0.85"/>
+            <path d="M18 29v31M54 29v31" stroke="#facc15" strokeWidth="5" strokeLinecap="round"/>
+            <path d="M9 30C9 17.85 21.09 8 36 8s27 9.85 27 22H9z" fill="#d97706" stroke="#5f2e10" strokeWidth="2.5" strokeLinejoin="round"/>
+            <path d="M18 29c2.6-8.7 9.2-14.8 18-14.8S51.4 20.3 54 29" fill="none" stroke="#fde047" strokeWidth="5" strokeLinecap="round"/>
+            <path d="M13 29h46" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round"/>
+            <rect x="30" y="27" width="12" height="14" rx="3" fill="#fde047" stroke="#5f2e10" strokeWidth="2.5"/>
+            <circle cx="36" cy="34" r="1.8" fill="#5f2e10"/>
+            <path d="M35 35.5h2v3h-2z" fill="#5f2e10"/>
+            <path className="sparkle" d="M56 10l1.6 3.5 3.7 1.4-3.7 1.4L56 20l-1.6-3.7-3.7-1.4 3.7-1.4L56 10z" fill="#fff7ad"/>
+            <path className="sparkle" style={{ animationDelay: '-0.8s' }} d="M15 13l1.1 2.3 2.4.9-2.4.9L15 18.4l-1.1-2.3-2.4-.9 2.4-.9L15 13z" fill="#fff7ad"/>
           </svg>
         );
 
         // 氣球 (更圓潤)
         const SvgBalloon = ({ color, delay }) => (
             <div className="balloon-float" style={{ animationDelay: delay }}>
-               <svg width="60" height="80" viewBox="0 0 60 80">
-                  <ellipse cx="30" cy="35" rx="22" ry="26" fill={color} />
-                  <path d="M26 60 L34 60 L30 66 Z" fill={color} />
-                  <line x1="30" y1="66" x2="30" y2="80" stroke="white" strokeWidth="2" />
-                  <ellipse cx="22" cy="22" rx="4" ry="10" fill="white" opacity="0.4" transform="rotate(-30 22 22)" />
+               <svg width="70" height="96" viewBox="0 0 70 96" className="drop-shadow-xl">
+                  <ellipse cx="35" cy="36" rx="25" ry="30" fill={color} />
+                  <ellipse cx="28" cy="22" rx="6" ry="13" fill="white" opacity="0.38" transform="rotate(-30 28 22)" />
+                  <path d="M19 45c5.5 13 25 16 34 2-4 17-31 22-34-2z" fill="white" opacity="0.12" />
+                  <path d="M30 67h10l-5 7z" fill={color} stroke="rgba(0,0,0,0.18)" strokeWidth="1.5" />
+                  <path d="M35 74c-6 6 6 8 0 14s4 6 0 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.85" />
                </svg>
             </div>
         );
@@ -305,7 +357,7 @@
         // --- 遊戲資料設定 ---
         const GAME_DATA = [
           {
-            id: 1, title: "第一關：動物昆蟲精靈", layout: { x: 56, y: 84 },
+            id: 1, title: "第一關：動物昆蟲精靈", layout: { x: 62, y: 82 },
             questions: [
               { poem: "遠遠的，靜悄悄的，\n閒置在地平線上最陰暗的一角，\n一把張開的黑雨傘。", options: ["鴕鳥", "蛇", "蚊", "蜜蜂", "雁鳥", "蟬"], answer: "鴕鳥" },
               { poem: "再直的路，也走得曲折蜿蜒，艱難痛苦。\n偶爾也會停下來，\n昂首對著無止無盡的救贖之路，\n嗤嗤吐幾下舌頭。", options: ["鴕鳥", "蛇", "蚊", "蜜蜂", "雁鳥", "蟬"], answer: "蛇" },
@@ -316,7 +368,7 @@
             ]
           },
           {
-            id: 2, title: "第二關：植物精靈", layout: { x: 99, y: 90 },
+            id: 2, title: "第二關：植物精靈", layout: { x: 91, y: 84 },
             questions: [
               { poem: "一行細瘦的字體，\n凸寫出飄逸清高的性情。", options: ["竹", "聖誕紅", "楓葉", "菊花", "含羞草", "柳"], answer: "竹" },
               { poem: "年年秋劫之後萬花落盡，\n你擎一叢叢紅豔，如擎一支一支火炬，\n自冰冷冷的封凍，默默燃炬。", options: ["竹", "聖誕紅", "楓葉", "菊花", "含羞草", "柳"], answer: "聖誕紅" },
@@ -327,7 +379,7 @@
             ]
           },
           {
-            id: 3, title: "第三關：水果精靈", layout: { x: 87, y: 53 },
+            id: 3, title: "第三關：水果精靈", layout: { x: 87, y: 55 },
             questions: [
               { poem: "滿天的星子，\n不甘當月兒的配角，於是墜入凡塵。\n卻沒料到在萬紫千紅中，\n仍逃不掉宿命的安排，變成了○○。", options: ["楊桃", "桃", "哈密瓜", "鳳梨", "荔枝", "西瓜"], answer: "楊桃" },
               { poem: "在你有著孩子的，\n或者少女的面頰一樣色彩的時候，\n人們剝奪了你的肉皮。\n於是貪婪者滿足了，鄙視地投落你的核。\n你從泥濘中與堅硬的沙土中掙扎着，\n終於你站穩了腳跟，向天空舉起歡呼的手。", options: ["楊桃", "桃", "哈密瓜", "鳳梨", "荔枝", "西瓜"], answer: "桃" },
@@ -338,7 +390,7 @@
             ]
           },
           {
-            id: 4, title: "第四關：自然現象精靈", layout: { x: 56, y: 44 },
+            id: 4, title: "第四關：自然現象精靈", layout: { x: 51, y: 48 },
             questions: [
               { poem: "靜止的事物，\n群情騷動。", options: ["風", "雲", "霧", "流星", "大雨", "海浪"], answer: "風" },
               { poem: "可塑性極高之黏土，\n隨風捏造。", options: ["風", "雲", "霧", "流星", "大雨", "海浪"], answer: "雲" },
@@ -349,7 +401,7 @@
             ]
           },
           {
-            id: 5, title: "第五關：生活物品精靈", layout: { x: 10, y: 38 },
+            id: 5, title: "第五關：生活物品精靈", layout: { x: 10, y: 43 },
             questions: [
               { poem: "推吧！繞一個靜寂的中心，\n推動所有金磨子成一座磨坊。\n流過世紀，磨成了歲月；\n流過歲月，磨成了時辰；\n流過時辰，磨成了分秒。\n涓涓滴滴，從號稱不透水的閘門，偷偷地漏去。", options: ["鐘錶", "馬桶", "電風扇", "筷子", "輪胎", "蠟燭"], answer: "鐘錶" },
               { poem: "當我倆口對口，\n妳總愛傾瀉滿肚子的苦水。\n時而氣勢滂沱，時而斷斷續續，\n等你帶走了昨夜的溫存，\n留給我的卻是久久未消的吻痕，\n和揮之不去的餘味。", options: ["鐘錶", "馬桶", "電風扇", "筷子", "輪胎", "蠟燭"], answer: "馬桶" },
@@ -360,7 +412,7 @@
             ]
           },
           {
-            id: 6, title: "第六關：感官精靈", layout: { x: 10, y: -5 },
+            id: 6, title: "第六關：感官精靈", layout: { x: 10, y: 13 },
             questions: [
               { poem: "歲月的齒輪輾出的戰壕，\n有時至死也遇不見戰爭。", options: ["皺紋", "眉", "耳", "眼", "口", "鼻"], answer: "皺紋" },
               { poem: "只有翅翼，而無身軀的鳥，\n在哭和笑之間不斷飛翔。", options: ["皺紋", "眉", "耳", "眼", "口", "鼻"], answer: "眉" },
@@ -371,7 +423,7 @@
             ]
           },
           {
-            id: 7, title: "第七關：人生旅程精靈", layout: { x: 38, y: 4 },
+            id: 7, title: "第七關：人生旅程精靈", layout: { x: 48, y: 21 },
             questions: [
               { poem: "□□是一匹錦綺，\n時間是一把剪刀，一節一節地剪去，\n等到剪完的時候，把一堆破布付之一炬。", options: ["生命", "錯誤", "襁褓"], answer: "生命" },
               { poem: "他就住在真理的隔壁，\n因此常使我們上當。", options: ["生命", "錯誤", "襁褓"], answer: "錯誤" },
@@ -381,13 +433,13 @@
         ];
 
         // 起點與終點座標
-        const START_POS = { x: 10, y: 90 };
-        const END_POS = { x: 90, y: 10 };
+        const START_POS = { x: 13, y: 86 };
+        const END_POS = { x: 87, y: 17 };
         
         // 寶箱1 (幸運抽獎): 在第3關與第4關之間 
-        const LUCKY_CHEST_POS = { x: 71.5, y: 48.5 };
+        const LUCKY_CHEST_POS = { x: 68, y: 51 };
         // 寶箱2 (射氣球): 在第5關與第6關之間
-        const BALLOON_CHEST_POS = { x: 10, y: 16.5 };
+        const BALLOON_CHEST_POS = { x: 10, y: 28 };
 
         class ErrorBoundary extends React.Component {
           constructor(props) {
@@ -554,7 +606,19 @@
           };
 
           const getSmoothPath = () => {
-            const points = [START_POS, ...GAME_DATA.map(l => l.layout), END_POS];
+            const points = [
+                START_POS,
+                GAME_DATA[0].layout,
+                GAME_DATA[1].layout,
+                GAME_DATA[2].layout,
+                LUCKY_CHEST_POS,
+                GAME_DATA[3].layout,
+                GAME_DATA[4].layout,
+                BALLOON_CHEST_POS,
+                GAME_DATA[5].layout,
+                GAME_DATA[6].layout,
+                END_POS
+            ];
             if (points.length < 2) return "";
             let d = `M ${points[0].x} ${points[0].y}`;
             for (let i = 0; i < points.length - 1; i++) {
@@ -573,6 +637,11 @@
 
           const handleLevelClick = (levelId) => {
             if (levelId > unlockedLevel) return;
+            if (levelId < unlockedLevel) {
+                setToastMsg("這一關已經通過，請前往下一關！");
+                setTimeout(() => setToastMsg(null), 2500);
+                return;
+            }
             
             if (levelId >= 4 && !luckyChestOpened) {
                 setToastMsg("請先點擊路徑上的寶箱！");
@@ -703,6 +772,7 @@
             if (!currentLevelData) return [];
             return shuffleArray(currentLevelData.questions[0].options);
           }, [currentLevelId]);
+          const mapPath = useMemo(() => getSmoothPath(), []);
 
           // --- 射氣球彈弓小遊戲組件 ---
           const BalloonGame = () => {
@@ -721,15 +791,27 @@
               });
 
               const animFrame = useRef(null);
+              const dragFrame = useRef(null);
+              const dragCurrentRef = useRef(anchor);
               const balloonsRef = useRef(balloons);
               
               useEffect(() => {
                   balloonsRef.current = balloons;
               }, [balloons]);
 
+              const setDragCurrent = (point) => {
+                  dragCurrentRef.current = point;
+                  if (dragFrame.current) return;
+                  dragFrame.current = requestAnimationFrame(() => {
+                      dragFrame.current = null;
+                      setDragState(prev => ({ ...prev, current: dragCurrentRef.current }));
+                  });
+              };
+
               const handlePointerDown = (e) => {
                   if (phase !== 'aim') return;
                   e.currentTarget.setPointerCapture(e.pointerId);
+                  dragCurrentRef.current = anchor;
                   setDragState({
                       isDragging: true,
                       mouseStart: { x: e.clientX, y: e.clientY },
@@ -760,7 +842,7 @@
                   
                   if (currentY < anchor.y - 5) currentY = anchor.y - 5;
 
-                  setDragState(prev => ({ ...prev, current: { x: currentX, y: currentY } }));
+                  setDragCurrent({ x: currentX, y: currentY });
               };
 
               const handlePointerUp = (e) => {
@@ -768,12 +850,14 @@
                   e.currentTarget.releasePointerCapture(e.pointerId);
                   setDragState(prev => ({ ...prev, isDragging: false }));
                   
-                  const dx = anchor.x - dragState.current.x;
-                  const dy = anchor.y - dragState.current.y;
+                  const releasePoint = dragCurrentRef.current;
+                  const dx = anchor.x - releasePoint.x;
+                  const dy = anchor.y - releasePoint.y;
                   const pullDist = Math.sqrt(dx*dx + dy*dy);
                   
                   if (pullDist < 2) {
                       setDragState(prev => ({ ...prev, current: anchor }));
+                      dragCurrentRef.current = anchor;
                       return;
                   }
                   
@@ -781,7 +865,7 @@
                   const vx = dx * 0.15;
                   const vy = dy * 0.15;
                   
-                  shootProjectile(dragState.current.x, dragState.current.y, vx, vy);
+                  shootProjectile(releasePoint.x, releasePoint.y, vx, vy);
               };
 
               const handleNextShot = (hitIndex) => {
@@ -803,6 +887,7 @@
                       const nextS = s - 1;
                       if (nextS > 0) {
                           setPhase('aim');
+                          dragCurrentRef.current = anchor;
                           setDragState(prev => ({ ...prev, current: anchor }));
                       } else {
                           setPhase('result');
@@ -851,6 +936,7 @@
               useEffect(() => {
                   return () => {
                       if (animFrame.current) cancelAnimationFrame(animFrame.current);
+                      if (dragFrame.current) cancelAnimationFrame(dragFrame.current);
                   };
               }, []);
 
@@ -892,28 +978,40 @@
               }
 
               return (
-                  <div className="absolute inset-0 z-50 bg-gradient-to-b from-sky-400 to-sky-800 flex flex-col items-center justify-between p-4 overflow-hidden select-none touch-none">
-                      <h2 className="text-white text-3xl font-bold mt-4 drop-shadow-md">🎈 射破氣球！(剩餘 {shotsLeft} 箭)</h2>
+                  <div className="absolute inset-0 z-50 bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-900 flex flex-col items-center justify-between p-4 overflow-hidden select-none touch-none">
+                      <div className="absolute top-8 right-10 w-24 h-24 rounded-full bg-yellow-200/80 blur-sm"></div>
+                      <h2 className="relative z-10 text-white text-3xl font-bold mt-4 drop-shadow-md">🎈 射破氣球！(剩餘 {shotsLeft} 箭)</h2>
                       <p className="text-sky-100 mt-2 text-sm text-center font-bold bg-black/20 px-4 py-1 rounded-full">按住皮兜向後拉動，調整角度與力道，鬆開即可發射！</p>
                       
                       <div 
-                          className="relative w-full max-w-md h-[65vh] border-4 border-white/50 rounded-2xl bg-sky-300/30 backdrop-blur-sm m-4 overflow-hidden touch-none shadow-2xl" 
+                          className="relative w-full max-w-md h-[65vh] border-4 border-white/60 rounded-2xl bg-gradient-to-b from-sky-100/80 via-sky-300/60 to-emerald-200/60 backdrop-blur-sm m-4 overflow-hidden touch-none shadow-2xl" 
                           onPointerDown={handlePointerDown}
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
                           onContextMenu={(e) => e.preventDefault()}
                       >
+                          <div className="absolute -bottom-12 -left-10 w-[130%] h-40 rounded-[50%] bg-emerald-500/45 z-0"></div>
+                          <div className="absolute -bottom-16 left-16 w-[110%] h-36 rounded-[50%] bg-green-700/35 z-0"></div>
                           <SvgCloud className="absolute top-[10%] cloud-anim z-0" />
                           <SvgCloud className="absolute top-[30%] cloud-anim z-0" style={{ animationDelay: '-10s', transform: 'scale(0.8)' }} />
                           
-                          <div className="absolute top-[20%] left-[20%] transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-                              {balloons[0] && <SvgBalloon color="#ef4444" delay="0s" />}
+                          <div className="absolute top-[20%] left-[20%] transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 gpu-layer">
+                              {balloons[0] && <>
+                                  <div className="absolute inset-0 -m-2 rounded-full border-2 border-white/45"></div>
+                                  <SvgBalloon color="#ef4444" delay="0s" />
+                              </>}
                           </div>
-                          <div className="absolute top-[20%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-                              {balloons[1] && <SvgBalloon color="#f59e0b" delay="-1s" />}
+                          <div className="absolute top-[20%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 gpu-layer">
+                              {balloons[1] && <>
+                                  <div className="absolute inset-0 -m-2 rounded-full border-2 border-white/45"></div>
+                                  <SvgBalloon color="#f59e0b" delay="-1s" />
+                              </>}
                           </div>
-                          <div className="absolute top-[20%] left-[80%] transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-                              {balloons[2] && <SvgBalloon color="#10b981" delay="-2s" />}
+                          <div className="absolute top-[20%] left-[80%] transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 gpu-layer">
+                              {balloons[2] && <>
+                                  <div className="absolute inset-0 -m-2 rounded-full border-2 border-white/45"></div>
+                                  <SvgBalloon color="#10b981" delay="-2s" />
+                              </>}
                           </div>
 
                           {/* 彈弓在下層 */}
@@ -929,7 +1027,7 @@
 
                           {phase === 'aim' && (
                              <div 
-                                className={`absolute w-10 h-6 bg-amber-900 rounded-full shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.5),_0_4px_4px_rgba(0,0,0,0.5)] transform -translate-x-1/2 -translate-y-1/2 z-30 flex items-center justify-center ${!dragState.isDragging && 'animate-pulse cursor-pointer ring-4 ring-white/50'}`}
+                                className={`absolute w-10 h-6 bg-amber-900 rounded-full shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.5),_0_4px_4px_rgba(0,0,0,0.5)] transform -translate-x-1/2 -translate-y-1/2 z-30 flex items-center justify-center gpu-layer ${!dragState.isDragging && 'animate-pulse cursor-pointer ring-4 ring-white/50'}`}
                                 style={{ left: `${dragState.current.x}%`, top: `${dragState.current.y}%` }}
                              >
                                 <div className="w-4 h-4 bg-gray-400 rounded-full shadow-inner"></div>
@@ -938,7 +1036,7 @@
 
                           {projectile && (
                               <div 
-                                className="absolute w-5 h-5 bg-gray-300 rounded-full shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30"
+                                className="absolute w-5 h-5 bg-gray-300 rounded-full shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30 gpu-layer"
                                 style={{ left: `${projectile.x}%`, top: `${projectile.y}%` }}
                               ></div>
                           )}
@@ -1142,15 +1240,21 @@
 
           // 5. 地圖畫面
           return (
-            <div className="min-h-screen relative overflow-hidden font-sans" style={{
-                backgroundImage: 'url("./新詩冒險底圖.png")',
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: '#166534'
-              }}>
-              <div className="container mx-auto h-screen p-4 flex flex-col relative z-10">
-                <h1 className="text-3xl md:text-4xl text-white font-bold text-center mt-4 drop-shadow-md flex items-center justify-center bg-black/40 p-2 rounded-xl backdrop-blur-sm w-fit mx-auto">
+            <div className="min-h-screen overflow-auto font-sans bg-green-950" style={{ minHeight: '100dvh' }}>
+              <div
+                className="relative bg-cover bg-center bg-no-repeat"
+                style={{
+                    width: 'max(100vw, 820px)',
+                    aspectRatio: '2752 / 1536',
+                    backgroundImage: 'url("./新詩冒險底圖.png")',
+                    backgroundColor: '#166534'
+                }}
+              >
+              <div className="relative min-h-full w-full p-3 md:p-4 flex flex-col z-10">
+                <h1 className="relative z-40 text-2xl sm:text-3xl md:text-4xl text-white font-bold text-center mt-2 md:mt-4 drop-shadow-md flex items-center justify-center bg-black/40 p-2 rounded-xl backdrop-blur-sm w-fit mx-auto">
                   <BookOpen className="mr-3" /> 詩野仙蹤地圖
                 </h1>
-                <p className="text-center text-white font-bold mt-2 drop-shadow-md">點擊發亮的關卡開始挑戰</p>
+                <p className="relative z-40 text-center text-white text-sm md:text-base font-bold mt-2 drop-shadow-md">點擊發亮的關卡開始挑戰</p>
                 
                 {/* 提示訊息 Modal (阻擋前進時顯示) */}
                 {toastMsg && (
@@ -1159,7 +1263,7 @@
                     </div>
                 )}
 
-                <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end space-y-2 z-40">
+                <div className="fixed top-3 right-3 md:absolute md:top-8 md:right-8 flex flex-col items-end space-y-2 z-40">
                     <div className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full font-bold shadow-lg flex items-center border-2 border-yellow-200">
                         <Star className="mr-2 fill-current" size={20} />
                         <span className="text-lg">得分: {score}</span>
@@ -1171,17 +1275,26 @@
                     </div>
                 </div>
 
-                <div className="flex-1 relative mt-8 rounded-3xl m-4 md:m-8">
+                <div className="absolute inset-0 z-0">
                   <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <path
+                      d={mapPath}
+                      fill="none"
+                      stroke="rgba(37, 99, 235, 0.35)"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="map-route"
+                    />
                     <path 
-                      d={getSmoothPath()} 
+                      d={mapPath} 
                       fill="none" 
-                      stroke="white" 
-                      strokeWidth="0.8" 
-                      strokeDasharray="2 2"
+                      stroke="rgba(255, 255, 255, 0.95)" 
+                      strokeWidth="1.1" 
+                      strokeDasharray="1.5 2"
                       strokeLinecap="round" 
                       strokeLinejoin="round" 
-                      className="drop-shadow-lg opacity-90"
+                      className="map-route map-route-glow"
                     />
                   </svg>
                   <div className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10" style={{ left: `${START_POS.x}%`, top: `${START_POS.y}%` }}>
@@ -1191,12 +1304,11 @@
                   
                   {/* 玩家棋子 (白色) */}
                   <div 
-                    className="absolute transform -translate-x-1/2 -translate-y-full z-30 transition-all duration-1000 ease-in-out piece-idle"
+                    className="absolute transform -translate-x-1/2 -translate-y-full z-30 transition-all duration-1000 ease-in-out"
                     style={{ left: `${piecePos.x}%`, top: `${piecePos.y}%` }}
                   >
-                    <div className="relative">
-                        <ChessPiece className="text-white w-12 h-12 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]" />
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/40 rounded-full blur-sm"></div>
+                    <div className="relative piece-idle gpu-layer">
+                        <BoyAvatar className="w-12 h-16 md:w-14 md:h-[72px] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]" />
                     </div>
                   </div>
 
@@ -1206,7 +1318,7 @@
                     style={{ left: `${LUCKY_CHEST_POS.x}%`, top: `${LUCKY_CHEST_POS.y}%` }}
                     onClick={handleLuckyChestClick}
                   >
-                    <div className={`drop-shadow-xl ${!luckyChestOpened ? 'animate-pulse' : ''}`}>
+                    <div className={`drop-shadow-xl gpu-layer ${!luckyChestOpened ? 'animate-pulse' : ''}`}>
                         <TreasureChest />
                     </div>
                     {!luckyChestOpened && unlockedLevel >= 4 && <span className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-yellow-300 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-md whitespace-nowrap">點我抽獎!</span>}
@@ -1218,7 +1330,7 @@
                     style={{ left: `${BALLOON_CHEST_POS.x}%`, top: `${BALLOON_CHEST_POS.y}%` }}
                     onClick={handleBalloonChestClick}
                   >
-                    <div className={`drop-shadow-xl ${!balloonChestOpened ? 'animate-pulse' : ''}`}>
+                    <div className={`drop-shadow-xl gpu-layer ${!balloonChestOpened ? 'animate-pulse' : ''}`}>
                         <TreasureChest />
                     </div>
                     {!balloonChestOpened && unlockedLevel >= 6 && <span className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-blue-300 text-blue-900 text-xs font-bold px-2 py-1 rounded shadow-md whitespace-nowrap">射氣球挑戰!</span>}
@@ -1226,20 +1338,24 @@
 
                   {/* 幸運寶箱抽獎 Modal */}
                   {showChestModal && (
-                      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-bounce-in">
-                              <h3 className="text-3xl font-bold text-indigo-900 mb-6">🎁 幸運寶箱時間！</h3>
+                      <div className="absolute inset-0 z-50 flex items-center justify-center bg-indigo-950/80 backdrop-blur-sm p-4">
+                          <div className="relative overflow-hidden bg-gradient-to-b from-amber-50 to-yellow-100 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border-4 border-yellow-300 animate-bounce-in">
+                              <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-yellow-300/35 blur-2xl"></div>
+                              <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-orange-300/35 blur-2xl"></div>
+                              <h3 className="relative text-3xl font-bold text-indigo-900 mb-2">🎁 幸運寶箱時間！</h3>
+                              <p className="relative text-sm font-bold text-yellow-800 mb-6">選一個寶箱，看看能不能補回愛心。</p>
                               {!chestMessage ? (
-                                  <div className="grid grid-cols-3 gap-4">
+                                  <div className="relative grid grid-cols-3 gap-4">
                                       {[1, 2, 3].map(i => (
-                                          <button key={i} onClick={() => openLuckyChest(i)} className="bg-yellow-50 hover:bg-yellow-100 border-4 border-yellow-400 rounded-xl p-4 flex flex-col items-center transition-all hover:-translate-y-2 shadow-md">
-                                              <TreasureChest className="w-12 h-12 mb-2" />
-                                              <span className="font-bold text-yellow-800">寶箱 {i}</span>
+                                          <button key={i} onClick={() => openLuckyChest(i)} className="bg-white/80 hover:bg-white border-4 border-yellow-400 rounded-2xl p-4 flex flex-col items-center transition-all hover:-translate-y-2 hover:shadow-xl shadow-md gpu-layer">
+                                              <TreasureChest className="w-14 h-14 mb-2" />
+                                              <span className="font-bold text-yellow-900">寶箱 {i}</span>
                                           </button>
                                       ))}
                                   </div>
                               ) : (
-                                  <div className="py-8 animate-pulse">
+                                  <div className="relative py-8 animate-pulse">
+                                      <TreasureChest className="w-20 h-20 mx-auto mb-4" />
                                       <p className="text-2xl font-bold text-red-600">{chestMessage}</p>
                                   </div>
                               )}
@@ -1252,13 +1368,13 @@
                     const isCompleted = level.id < unlockedLevel;
                     const isCurrent = level.id === unlockedLevel;
                     return (
-                      <button key={level.id} onClick={() => handleLevelClick(level.id)} disabled={!isUnlocked} className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 group ${isCurrent ? 'scale-110 z-20 hover:scale-125' : 'scale-100 z-10 hover:scale-110'}`} style={{ left: `${level.layout.x}%`, top: `${level.layout.y}%` }}>
+                      <button key={level.id} onClick={() => handleLevelClick(level.id)} disabled={!isUnlocked || isCompleted} className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 group ${isCompleted ? 'scale-100 z-10 cursor-not-allowed' : isCurrent ? 'scale-110 z-20 hover:scale-125' : 'scale-100 z-10 hover:scale-110'}`} style={{ left: `${level.layout.x}%`, top: `${level.layout.y}%` }}>
                         <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-xl border-4 ${isCompleted ? 'bg-yellow-400 border-yellow-200 text-yellow-900' : isCurrent ? 'bg-blue-500 border-white text-white animate-pulse ring-4 ring-blue-300/50' : 'bg-gray-600 border-gray-500 text-gray-400'}`}>
                           {isCompleted ? <Check size={28} strokeWidth={3} /> : !isUnlocked ? <Lock size={20} /> : <span className="text-xl md:text-2xl font-bold">{level.id}</span>}
                         </div>
                         {/* 關卡名稱改為全時顯示 (未解鎖時呈現暗色半透明樣式) */}
                         <div className="absolute top-full mt-2 w-max left-1/2 -translate-x-1/2 text-center pointer-events-none z-30">
-                          <span className={`text-xs md:text-sm font-bold px-2 py-1 rounded shadow-md border ${isCurrent ? 'bg-blue-600 text-white border-blue-300' : isCompleted ? 'bg-white text-gray-800 border-gray-300' : 'bg-gray-800/90 text-gray-300 border-gray-600 backdrop-blur-sm'}`}>{level.title}</span>
+                          <span className={`text-xs md:text-sm font-bold px-2 py-1 rounded shadow-md border ${isCurrent ? 'bg-blue-600 text-white border-blue-300' : isCompleted ? 'bg-white text-gray-800 border-gray-300' : 'bg-gray-800/90 text-gray-300 border-gray-600 backdrop-blur-sm'}`}>{isCompleted ? `${level.title}（已通過）` : level.title}</span>
                         </div>
                       </button>
                     );
@@ -1279,6 +1395,7 @@
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           );
         }
