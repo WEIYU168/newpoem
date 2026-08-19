@@ -25,6 +25,8 @@
     
     <!-- 引入 Babel (用於解析 JSX) -->
     <script src="./vendor/babel.min.js"></script>
+    <link rel="preload" as="image" href="./詩野仙蹤.png">
+    <link rel="preload" as="image" href="./新詩冒險底圖.png">
     <script>
         Babel.registerPreset('react-classic', {
             presets: [[Babel.availablePresets['react'], { runtime: 'classic' }]]
@@ -177,6 +179,34 @@
         const getLevelBackgroundImage = (levelId) => {
             const levelName = numToChinese[levelId];
             return levelId === 3 ? `./第${levelName}關背景.png` : `./第${levelName}關.png`;
+        };
+
+        const GAME_BACKGROUND_IMAGES = [
+            './詩野仙蹤.png',
+            './新詩冒險底圖.png',
+            ...Object.keys(numToChinese).map(id => getLevelBackgroundImage(Number(id))),
+            ...Object.keys(numToChinese).map(id => `./第${numToChinese[id]}關失敗.png`),
+            './結尾.png'
+        ];
+
+        const preloadGameImages = () => {
+            const schedule = window.requestIdleCallback || ((callback) => setTimeout(callback, 120));
+            let index = 0;
+            const loadNext = () => {
+                const src = GAME_BACKGROUND_IMAGES[index++];
+                if (!src) return;
+                const img = new Image();
+                img.decoding = 'async';
+                img.src = src;
+                const done = () => schedule(loadNext);
+                if (img.decode) {
+                    img.decode().then(done).catch(done);
+                } else {
+                    img.onload = done;
+                    img.onerror = done;
+                }
+            };
+            schedule(loadNext);
         };
 
         // --- 隨機洗牌函數 ---
@@ -496,6 +526,7 @@
             const audio = new Audio('奇幻森林.mp3');
             audio.loop = true;
             audioRef.current = audio;
+            preloadGameImages();
             return () => {
                 audio.pause();
             };
